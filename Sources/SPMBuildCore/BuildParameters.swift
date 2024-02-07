@@ -190,8 +190,10 @@ public struct BuildParameters: Encodable {
     }
 
     /// The current platform we're building for.
-    var currentPlatform: PackageModel.Platform {
-        if self.triple.isDarwin() {
+    public var currentPlatform: PackageModel.Platform {
+        if self.triple.os == .ios {
+            return .iOS
+        } else if self.triple.isDarwin() {
             return .macOS
         } else if self.triple.isAndroid() {
             return .android
