@@ -71,7 +71,8 @@ extension Triple {
         return """
             \(self.archName)-\
             \(self.vendorName)-\
-            \(self.osNameUnversioned)\(version)
+            \(self.osNameUnversioned)\(version)\
+            \(self.environmentName.isEmpty ? "" : "-" + self.environmentName)
             """
     }
 
