@@ -140,7 +140,7 @@ extension BuildParameters {
         var args = ["-target"]
         // Compute the triple string for Darwin platform using the platform version.
         if triple.isDarwin() {
-            let macOSSupportedPlatform = target.platforms.getDerived(for: .macOS, usingXCTest: target.type == .test)
+            let macOSSupportedPlatform = target.platforms.getDerived(for: currentPlatform, usingXCTest: target.type == .test)
             args += [triple.tripleString(forPlatformVersion: macOSSupportedPlatform.version.versionString)]
         } else {
             args += [triple.tripleString]
