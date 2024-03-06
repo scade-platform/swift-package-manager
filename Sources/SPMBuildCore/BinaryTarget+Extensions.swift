@@ -44,7 +44,7 @@ extension BinaryTarget {
         // Filter the libraries that are relevant to the triple.
         // FIXME: this filter needs to become more sophisticated
         guard let library = metadata.libraries.first(where: {
-            $0.platform == triple.os?.asXCFrameworkPlatformString &&
+            $0.platform == triple.asXCFrameworkPlatformString &&
                 $0.architectures.contains(triple.archName)
         }) else {
             return []
@@ -93,16 +93,38 @@ extension Triple {
     }
 }
 
-extension Triple.OS {
+extension Triple {
     /// Returns a representation of the receiver that can be compared with platform strings declared in an XCFramework.
     fileprivate var asXCFrameworkPlatformString: String? {
-        switch self {
-        case .darwin, .linux, .wasi, .win32, .openbsd, .noneOS:
-            return nil // XCFrameworks do not support any of these platforms today.
+        if self.isAndroid() {
+            return "android"
+        }
+
+        guard let os = self.os else { return nil }
+        switch os {
         case .macosx:
             return "macos"
+        case .ios:
+            return "ios"
+        case .linux:
+            return "linux"
         default:
             return nil // XCFrameworks do not support any of these platforms today.
+        }
+    }
+
+    /// Returns a representation of the receiver that can be compared with platform variant strings declared in an XCFramework.
+    fileprivate var asXCFrameworkPlatformVariantString: String? {
+        guard let os = self.os else { return nil }
+        switch os {
+        case .ios:
+            if self.environment == .simulator {
+                return "simulator"
+            } else {
+                return nil
+            }
+        default:
+            return nil  // No platform variant support for other platforms
         }
     }
 }
