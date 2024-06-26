@@ -435,7 +435,12 @@ public final class SwiftTargetBuildDescription {
         #else
         try self.requiredMacroProducts.forEach { macro in
             if let macroTarget = macro.targets.first {
-                let executablePath = try self.buildParameters.binaryPath(for: macro).pathString
+                let dir = buildParameters.dataPath.parentDirectory.appending(
+                    components: buildParameters.hostTriple.platformBuildPathComponent,
+                                buildParameters.configuration.dirname)
+
+                let binRelPath = try buildParameters.binaryRelativePath(for: macro).pathString
+                let executablePath = dir.appending(component: binRelPath)
                 args += ["-Xfrontend", "-load-plugin-executable", "-Xfrontend", "\(executablePath)#\(macroTarget.c99name)"]
             } else {
                 throw InternalError("macro product \(macro.name) has no targets") // earlier validation should normally catch this
