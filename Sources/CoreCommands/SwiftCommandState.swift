@@ -767,7 +767,7 @@ public final class SwiftCommandState {
             configuration: options.build.configuration ?? self.preferredBuildConfiguration,
             toolchain: toolchain,
             triple: triple,
-            flags: options.build.buildFlags,
+            flags: (destination == .target) ? options.build.buildFlags : BuildFlags(),
             pkgConfigDirectories: options.locations.pkgConfigDirectories,
             architectures: options.build.architectures,
             workers: options.build.jobs ?? UInt32(ProcessInfo.processInfo.activeProcessorCount),
