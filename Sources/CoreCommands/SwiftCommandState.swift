@@ -683,6 +683,10 @@ public final class SwiftCommandState {
         try _targetToolchain.get()
     }
 
+    public func getToolsToolchain() throws -> UserToolchain {
+        try _toolsToolchain.get()
+    }
+
     public func getHostToolchain() throws -> UserToolchain {
         try _hostToolchain.get()
     }
@@ -846,7 +850,7 @@ public final class SwiftCommandState {
     private lazy var _toolsBuildParameters: Result<BuildParameters, Swift.Error> = {
         Result(catching: {
             // Tools need to do a full build
-            try _buildParams(toolchain: self.getHostToolchain(), destination: .host, prepareForIndexing: false)
+            try _buildParams(toolchain: self.getToolsToolchain(), destination: .host, prepareForIndexing: false)
         })
     }()
 
@@ -891,6 +895,46 @@ public final class SwiftCommandState {
                 customCompileSDK: options.build.customCompileSDK,
                 swiftSDKSelector: options.build.swiftSDKSelector ?? options.build.deprecatedSwiftSDKSelector,
                 architectures: options.build.architectures,
+                store: store,
+                observabilityScope: self.observabilityScope,
+                fileSystem: self.fileSystem
+            )
+        } catch {
+            return .failure(error)
+        }
+        // Check if we ended up with the host toolchain.
+        if hostSwiftSDK == swiftSDK {
+            return self._hostToolchain
+        }
+
+        return Result(catching: {
+            try UserToolchain(swiftSDK: swiftSDK, environment: self.environment, fileSystem: self.fileSystem)
+        })
+    }()
+
+    private lazy var _toolsToolchain: Result<UserToolchain, Swift.Error> = {
+        let swiftSDK: SwiftSDK
+        let hostSwiftSDK: SwiftSDK
+        let store = SwiftSDKBundleStore(
+            swiftSDKsDirectory: self.sharedSwiftSDKsDirectory,
+            fileSystem: fileSystem,
+            observabilityScope: observabilityScope,
+            outputHandler: { print($0.description) }
+        )
+        do {
+            let hostToolchain = try _hostToolchain.get()
+            hostSwiftSDK = hostToolchain.swiftSDK
+
+            if options.build.deprecatedSwiftSDKSelector != nil {
+                self.observabilityScope.emit(
+                    warning: "`--experimental-swift-sdk` is deprecated and will be removed in a future version of SwiftPM. Use `--swift-sdk` instead."
+                )
+            }
+            swiftSDK = try SwiftSDK.deriveTargetSwiftSDK(
+                hostSwiftSDK: hostSwiftSDK,
+                hostTriple: hostToolchain.targetTriple,
+                customToolsets: options.locations.toolsetPaths,
+                customCompileToolchain: options.build.customCompileToolchain,
                 store: store,
                 observabilityScope: self.observabilityScope,
                 fileSystem: self.fileSystem
