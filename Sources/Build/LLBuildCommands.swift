@@ -227,6 +227,8 @@ final class TestEntryPointCommand: CustomLLBuildCommand, TestBuildCommand {
             "canImport(XCTest)"
         case .loadableBundle:
             "false"
+        case .entryPointLibrary:
+            "canImport(XCTest)"
         }
 
         /// On WASI, we can't block the main thread, so XCTestMain is defined as async.
@@ -247,7 +249,25 @@ final class TestEntryPointCommand: CustomLLBuildCommand, TestBuildCommand {
 #endif
         }
 
-        stream.send(
+        let code = if buildParameters.triple.isAndroid() {
+            #"""
+
+            import XCTest
+            \#(discoveryModuleNames.map { "import \($0)" }.joined(separator: "\n"))
+
+            @available(*, deprecated, message: "Not actually deprecated. Marked as deprecated to allow inclusion of deprecated tests (which test deprecated functionality) without warnings")
+            struct Runner {
+                @_silgen_name("Java_org_swift_xctest_XCTest_run")
+                public static func Java_org_swift_xctest_XCTest_run(
+                        _ env: UnsafeMutableRawPointer?,
+                        _ clazz: UnsafeMutableRawPointer?
+                ) {
+                    XCTMain(__allDiscoveredTests()) as Never
+                }
+            }
+
+            """#
+        } else {
             #"""
             #if canImport(Testing)
             import Testing
@@ -303,7 +323,9 @@ final class TestEntryPointCommand: CustomLLBuildCommand, TestBuildCommand {
                 }
             }
             """#
-        )
+        }
+
+        stream.send(code)
 
         stream.flush()
     }

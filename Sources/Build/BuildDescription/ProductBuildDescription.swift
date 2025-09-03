@@ -212,6 +212,8 @@ public final class ProductBuildDescription: SPMBuildCore.ProductBuildDescription
                 args += ["-Xlinker", "-bundle"]
             case .entryPointExecutable:
                 args += ["-emit-executable"]
+            case .entryPointLibrary:
+                args += ["-emit-library"]
             }
             args += self.deadStripArguments
         case .library(.dynamic):
@@ -255,6 +257,10 @@ public final class ProductBuildDescription: SPMBuildCore.ProductBuildDescription
             }
         case .plugin:
             throw InternalError("unexpectedly asked to generate linker arguments for a plugin product")
+        }
+
+        if triple.isAndroid() {
+            args += ["-lXCTest", "-Xlinker", "-no-undefined"]
         }
 
         if let resourcesPath = self.buildParameters.toolchain.swiftResourcesPath(isStatic: isLinkingStaticStdlib) {
