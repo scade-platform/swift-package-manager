@@ -38,6 +38,9 @@ extension BuildParameters {
             explicitlySpecifiedPath: AbsolutePath?
         )
 
+        /// Same as entryPointExecutable, but getnerates dynamic library with entry point function
+        case entryPointLibrary
+
         /// The explicitly-specified entry point file path, if this style of test product supports it and a path was specified.
         public var explicitlySpecifiedEntryPointPath: AbsolutePath? {
             switch self {
@@ -45,12 +48,15 @@ extension BuildParameters {
                 return nil
             case .entryPointExecutable(explicitlyEnabledDiscovery: _, explicitlySpecifiedPath: let entryPointPath):
                 return entryPointPath
+            case .entryPointLibrary:
+                return nil
             }
         }
 
         public enum DiscriminatorKeys: String, Codable {
             case loadableBundle
             case entryPointExecutable
+            case entryPointLibrary
         }
 
         public enum CodingKeys: CodingKey {
@@ -68,6 +74,8 @@ extension BuildParameters {
                 try container.encode(DiscriminatorKeys.entryPointExecutable, forKey: ._case)
                 try container.encode(explicitlyEnabledDiscovery, forKey: .explicitlyEnabledDiscovery)
                 try container.encode(explicitlySpecifiedPath, forKey: .explicitlySpecifiedPath)
+            case .entryPointLibrary:
+                try container.encode(DiscriminatorKeys.loadableBundle, forKey: ._case)
             }
         }
     }
@@ -119,7 +127,15 @@ extension BuildParameters {
 
     /// The style of test product to produce.
     public var testProductStyle: TestProductStyle {
-        return triple.isDarwin() ? .loadableBundle : .entryPointExecutable(
+        if triple.isDarwin() {
+            return .loadableBundle
+        }
+
+        if triple.isAndroid() {
+            return .entryPointLibrary
+        }
+
+        return .entryPointExecutable(
             explicitlyEnabledDiscovery: testingParameters.explicitlyEnabledDiscovery,
             explicitlySpecifiedPath: testingParameters.explicitlySpecifiedPath
         )

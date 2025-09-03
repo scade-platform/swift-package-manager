@@ -12,9 +12,17 @@
 
 import SPMBuildCore
 
+private func generateAndroidTestObservationCode() -> String {
+    return ""
+}
+
 public func generateTestObservationCode(buildParameters: BuildParameters) -> String {
     guard buildParameters.triple.supportsTestSummary else {
         return ""
+    }
+
+    if buildParameters.triple.isAndroid() {
+        return generateAndroidTestObservationCode()
     }
 
     let content =
