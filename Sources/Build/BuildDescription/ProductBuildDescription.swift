@@ -223,6 +223,12 @@ public final class ProductBuildDescription: SPMBuildCore.ProductBuildDescription
                 let relativePath = try "@rpath/\(buildParameters.binaryRelativePath(for: self.product).pathString)"
                 args += ["-Xlinker", "-install_name", "-Xlinker", relativePath]
             }
+
+            if triple.isAndroid() && self.buildParameters.linkingParameters.shouldLinkStaticSwiftStdlib {
+                args += ["-static-stdlib"]
+                isLinkingStaticStdlib = true
+            }
+
             args += self.deadStripArguments
         case .executable, .snippet:
             // Link the Swift stdlib statically, if requested.
