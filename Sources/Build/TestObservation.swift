@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 import SPMBuildCore
+import Basics
 
 private func generateAndroidTestObservationCode() -> String {
     return ""
