@@ -257,7 +257,67 @@ final class TestEntryPointCommand: CustomLLBuildCommand, TestBuildCommand {
             #"""
 
             import XCTest
+            import os
             \#(discoveryModuleNames.map { "import \($0)" }.joined(separator: "\n"))
+
+            private func redirectStdoutThreadFunc(fd: Int32) {
+                var buffer: [CChar] = Array(repeating: 0, count: 256)
+                var nread = 0
+
+                while true {
+                    let remaining = buffer.count - nread
+
+                    // read() still needs a pointer, but logic after this is pure Array
+                    let res = buffer.withUnsafeMutableBytes { rawPtr -> Int in
+                        let ptr = rawPtr.baseAddress!.advanced(by: nread)
+                        return read(fd, ptr, remaining)
+                    }
+
+                    if res <= 0 {
+                        break   // EOF or error
+                    }
+
+                    let end = nread + res
+                    var newStart = 0
+
+                    // Process bytes inside the Swift Array (no pointer arithmetic)
+                    for i in nread..<end {
+                        if buffer[i] == 10 {   // '\n'
+                            buffer[i] = 0      // null terminate for C logcat API
+
+                            // Send line to logcat
+                            let slice = buffer[newStart..<i]
+                            let _ = slice.withContiguousStorageIfAvailable { ptr in
+                                __android_log_write(
+                                    Int32(ANDROID_LOG_DEBUG.rawValue),
+                                    "SwiftTestFoundation",
+                                    UnsafePointer<CChar>(ptr.baseAddress!)
+                                )
+                            }
+
+                            newStart = i + 1
+                        }
+                    }
+
+                    nread = end
+
+                    // Shift remaining content to front of array
+                    if newStart > 0 {
+                        let remainingLen = nread - newStart
+                        if remainingLen > 0 {
+                            for i in 0..<remainingLen {
+                                buffer[i] = buffer[newStart + i]
+                            }
+                        }
+                        nread = remainingLen
+                    }
+
+                    // Resize if full
+                    if nread == buffer.count {
+                        buffer.append(contentsOf: Array(repeating: 0, count: buffer.count))
+                    }
+                }
+            }
 
             @available(*, deprecated, message: "Not actually deprecated. Marked as deprecated to allow inclusion of deprecated tests (which test deprecated functionality) without warnings")
             struct Runner {
@@ -266,7 +326,30 @@ final class TestEntryPointCommand: CustomLLBuildCommand, TestBuildCommand {
                         _ env: UnsafeMutableRawPointer?,
                         _ clazz: UnsafeMutableRawPointer?
                 ) {
-                    XCTMain(__allDiscoveredTests()) as Never
+                    XCTMain(__allDiscoveredTests(), arguments: []) as Never
+                }
+
+                @_silgen_name("Java_org_swift_xctest_XCTest_redirectStdout")
+                public func redirectStdout() {
+                    // disable buffering
+                    setvbuf(stdout!, nil, _IONBF, 0)
+                    setvbuf(stderr!, nil, _IONBF, 0)
+
+                    // make pipe
+                    var pipeFds: [Int32] = [0, 0]
+                    pipe(&pipeFds)
+
+                    let readFD = pipeFds[0]
+                    let writeFD = pipeFds[1]
+
+                    // redirect stdout & stderr
+                    dup2(writeFD, 1)
+                    dup2(writeFD, 2)
+
+                    // start background thread
+                    Thread.detachNewThread {
+                        redirectStdoutThreadFunc(fd: readFD)
+                    }
                 }
             }
 
