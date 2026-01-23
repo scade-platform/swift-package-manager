@@ -326,7 +326,9 @@ final class TestEntryPointCommand: CustomLLBuildCommand, TestBuildCommand {
                         _ env: UnsafeMutableRawPointer?,
                         _ clazz: UnsafeMutableRawPointer?
                 ) {
-                    XCTMain(__allDiscoveredTests(), arguments: []) as Never
+                    print("XCTMain started")
+                    let code: CInt =    XCTMain(__allDiscoveredTests(), arguments: [])
+                    print("XCTMain finished")
                 }
 
                 @_silgen_name("Java_org_swift_xctest_XCTest_redirectStdout")
