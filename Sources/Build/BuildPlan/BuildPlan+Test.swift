@@ -198,7 +198,12 @@ extension BuildPlan {
                 resolvedTargetDependencies = [.module(discoveryTargets!.resolved, conditions: [])]
             }
 
-            if !destinationBuildParameters.triple.isDarwin(), let entryPointResolvedTarget = testProduct.testEntryPointModule {
+            let shouldIgnoreImplicitTestEntryPointOnAndroid =
+                destinationBuildParameters.triple.isAndroid() && !isEntryPointPathSpecifiedExplicitly
+
+            if !destinationBuildParameters.triple.isDarwin(),
+               !shouldIgnoreImplicitTestEntryPointOnAndroid,
+               let entryPointResolvedTarget = testProduct.testEntryPointModule {
                 if isEntryPointPathSpecifiedExplicitly || explicitlyEnabledDiscovery {
                     if isEntryPointPathSpecifiedExplicitly {
                         // Allow using the explicitly-specified test entry point target, but still perform test discovery and thus declare a dependency on the discovery modules.
