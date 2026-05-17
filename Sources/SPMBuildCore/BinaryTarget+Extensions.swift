@@ -58,7 +58,7 @@ extension BinaryModule {
         // Filter the libraries that are relevant to the triple.
         guard let library = metadata.libraries.first(where: {
             $0.platform == triple.asXCFrameworkPlatformString &&
-            $0.variant == triple.environment?.asXCFrameworkPlatformVariantString &&
+            $0.variant == triple.asXCFrameworkPlatformVariantString &&
             $0.architectures.contains(triple.archName)
         }) else {
             return []
@@ -158,8 +158,12 @@ extension Triple {
 
     /// Returns a representation of the receiver that can be compared with platform strings declared in an XCFramework.
     fileprivate var asXCFrameworkPlatformString: String? {
+        if self.isAndroid() {
+            return "android"
+        }
+
         switch self.os {
-        case .darwin, .wasi, .win32, .openbsd, .freebsd, .noneOS:
+        case .darwin, .linux, .wasi, .win32, .openbsd, .freebsd, .noneOS:
             return nil // XCFrameworks do not support any of these platforms today.
         case .macosx:
             return "macos"
@@ -178,11 +182,10 @@ extension Triple {
             return nil // XCFrameworks do not support any of these platforms today.
         }
     }
-}
 
-extension Triple.Environment {
     fileprivate var asXCFrameworkPlatformVariantString: String? {
-        switch self {
+        guard let env = self.environment else { return nil }
+        switch env {
         case .simulator:
             return "simulator"
         case .macabi:
