@@ -257,7 +257,7 @@ final class TestEntryPointCommand: CustomLLBuildCommand, TestBuildCommand {
             #"""
 
             import XCTest
-            import os
+            import Android
             \#(discoveryModuleNames.map { "import \($0)" }.joined(separator: "\n"))
 
             private func redirectStdoutThreadFunc(fd: Int32) {
@@ -327,15 +327,15 @@ final class TestEntryPointCommand: CustomLLBuildCommand, TestBuildCommand {
                         _ clazz: UnsafeMutableRawPointer?
                 ) {
                     print("XCTMain started")
-                    let code: CInt =    XCTMain(__allDiscoveredTests(), arguments: [])
+                    let _: CInt =    XCTMain(__allDiscoveredTests(), arguments: [])
                     print("XCTMain finished")
                 }
 
                 @_silgen_name("Java_org_swift_xctest_XCTest_redirectStdout")
                 public func redirectStdout() {
                     // disable buffering
-                    setvbuf(stdout!, nil, _IONBF, 0)
-                    setvbuf(stderr!, nil, _IONBF, 0)
+                    setvbuf(stdout, nil, _IONBF, 0)
+                    setvbuf(stderr, nil, _IONBF, 0)
 
                     // make pipe
                     var pipeFds: [Int32] = [0, 0]

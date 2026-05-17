@@ -218,7 +218,7 @@ public final class ProductBuildDescription: SPMBuildCore.ProductBuildDescription
             }
 
             if triple.isAndroid() {
-                args += ["-lXCTest", "-Xlinker", "-no-undefined"]
+                args += ["-lXCTest", "-llog", "-Xlinker", "-no-undefined"]
             }
 
             args += self.deadStripArguments
