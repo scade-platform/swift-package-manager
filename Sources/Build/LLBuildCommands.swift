@@ -319,6 +319,12 @@ final class TestEntryPointCommand: CustomLLBuildCommand, TestBuildCommand {
                 }
             }
 
+            private func disableBuffering(_ stream: OpaquePointer?) {
+                if let stream {
+                    setvbuf(stream, nil, _IONBF, 0)
+                }
+            }
+
             @available(*, deprecated, message: "Not actually deprecated. Marked as deprecated to allow inclusion of deprecated tests (which test deprecated functionality) without warnings")
             struct Runner {
                 @_silgen_name("Java_org_swift_xctest_XCTest_run")
@@ -334,8 +340,8 @@ final class TestEntryPointCommand: CustomLLBuildCommand, TestBuildCommand {
                 @_silgen_name("Java_org_swift_xctest_XCTest_redirectStdout")
                 public func redirectStdout() {
                     // disable buffering
-                    setvbuf(stdout, nil, _IONBF, 0)
-                    setvbuf(stderr, nil, _IONBF, 0)
+                    disableBuffering(stdout)
+                    disableBuffering(stderr)
 
                     // make pipe
                     var pipeFds: [Int32] = [0, 0]
